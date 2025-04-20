@@ -1,0 +1,51 @@
+[
+  {
+    "id": 25,
+    "name": "pikachu",
+    "koreanName": "피카츄",
+    "height": 4,
+    "weight": 60,
+    "type1": "electric",
+    "type2": null,
+    "generation": 1,
+    "base_experience": 112,
+    "capture_rate": 190,
+    "egg_groups": [
+      "field",
+      "fairy"
+    ],
+    "evolution_stage": 2,
+    "strong_against": [
+      "water",
+      "flying"
+    ],
+    "weak_against": [
+      "ground"
+    ]
+  },
+  {
+    "id": 7,
+    "name": "squirtle",
+    "koreanName": "꼬부기",
+    "height": 5,
+    "weight": 90,
+    "type1": "water",
+    "type2": null,
+    "generation": 1,
+    "base_experience": 63,
+    "capture_rate": 45,
+    "egg_groups": [
+      "monster",
+      "water1"
+    ],
+    "evolution_stage": 1,
+    "strong_against": [
+      "fire",
+      "ground"
+    ],
+    "weak_against": [
+      "electric",
+      "grass"
+    ]
+  }
+]
