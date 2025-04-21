@@ -242,11 +242,7 @@ function App() {
         </thead>
         <tbody>
           {best && (
-            <tr
-              key={best.name}
-              onClick={() => setSelected(best)}
-              style={{ cursor: "pointer" }}
-            >
+            <tr key={best.name} style={{ cursor: "pointer" }}>
               <td>{best.inputIndex}</td>
               <td>
                 <img
@@ -269,11 +265,7 @@ function App() {
             </tr>
           )}
           {latest && latest.name !== best?.name && (
-            <tr
-              key={latest.name}
-              onClick={() => setSelected(latest)}
-              style={{ cursor: "pointer" }}
-            >
+            <tr key={latest.name} style={{ cursor: "pointer" }}>
               <td>{latest.inputIndex}</td>
               <td>
                 <img
@@ -298,11 +290,7 @@ function App() {
             </tr>
           )}
           {others.map((g) => (
-            <tr
-              key={g.name}
-              onClick={() => setSelected(g)}
-              style={{ cursor: "pointer" }}
-            >
+            <tr key={g.name} style={{ cursor: "pointer" }}>
               <td>{g.inputIndex}</td>
               <td>
                 <img
