@@ -4,6 +4,19 @@ import { Sun, Moon } from "lucide-react";
 import TypeBadge from "./components/TypeBadge";
 import "./App.css";
 
+// Import normalization and weight definitions
+import {
+  normalizeFeature,
+  FEATURE_WEIGHTS,
+  TYPE_LIST,
+  EGG_GROUP_LIST,
+  SHAPE_LIST,
+  HABITAT_LIST,
+  COLOR_LIST,
+  ABILITY_LIST,
+  EXPERIENCE_GROUP_LIST,
+} from "./scoreUtils";
+
 function App() {
   const [allPokemons, setAllPokemons] = useState([]);
   const [answer, setAnswer] = useState(null);
@@ -29,14 +42,13 @@ function App() {
     initGame();
   }, []);
 
-  // toggle dark mode class
+  // Apply dark mode class to body
   useEffect(() => {
     document.body.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
   const rankedList = useMemo(() => {
     if (!answer) return [];
-    // compute score for each pokemon
     const list = allPokemons
       .map((p) => ({ ...p, score: getScore(p, answer) }))
       .filter((p) => p.name !== answer.name)
@@ -55,7 +67,7 @@ function App() {
     }
     if (guess.name === answer.name) {
       setCorrect({ ...guess, inputIndex: inputCount + 1, score: 100 });
-      setInputCount((prev) => prev + 1);
+      setInputCount((i) => i + 1);
       setInput("");
       setSuggestions([]);
       return;
@@ -72,19 +84,19 @@ function App() {
         ? prev
         : [...prev, scoredGuess]
     );
-    setInputCount((prev) => prev + 1);
+    setInputCount((i) => i + 1);
     setInput("");
     setSuggestions([]);
   };
 
   const handleInputChange = (e) => {
-    const value = e.target.value;
-    setInput(value);
+    const val = e.target.value;
+    setInput(val);
     setSuggestions(
       allPokemons
         .filter(
           (p) =>
-            p.koreanName.includes(value) || p.name.includes(value.toLowerCase())
+            p.koreanName.includes(val) || p.name.includes(val.toLowerCase())
         )
         .slice(0, 10)
     );
@@ -114,7 +126,7 @@ function App() {
         <h1>Ummantle</h1>
         <button
           className="theme-toggle"
-          onClick={() => setDarkMode(!darkMode)}
+          onClick={() => setDarkMode((d) => !d)}
           aria-label="Toggle dark mode"
         >
           {darkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -263,9 +275,9 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {rankedList.slice(0, 30).map((p, i) => (
+                {rankedList.slice(0, 30).map((p, idx) => (
                   <tr key={p.name}>
-                    <td>{i}</td>
+                    <td>{idx}</td>
                     <td>
                       {p.koreanName} ({p.name})
                     </td>
@@ -327,95 +339,64 @@ function euclideanScore(vecA, vecB) {
 }
 
 function toVector(p) {
-  // 기본 수치
-  const base = [
-    p.height || 0,
-    p.weight || 0,
-    p.base_experience || 0,
-    p.capture_rate || 0,
-    p.evolution_stage || 0,
-    p.generation || 0,
+  const contArr = [
+    normalizeFeature(p.height, "height"),
+    normalizeFeature(p.weight, "weight"),
+    normalizeFeature(p.base_experience, "base_experience"),
+    normalizeFeature(p.capture_rate, "capture_rate"),
+    normalizeFeature(p.evolution_stage, "evolution_stage"),
+    normalizeFeature(p.generation, "generation"),
   ];
-  // 스탯
   const stats = [
-    p.hp || 0,
-    p.attack || 0,
-    p.defense || 0,
-    p.special_attack || 0,
-    p.special_defense || 0,
-    p.speed || 0,
+    normalizeFeature(p.hp, "hp"),
+    normalizeFeature(p.attack, "attack"),
+    normalizeFeature(p.defense, "defense"),
+    normalizeFeature(p.special_attack, "special_attack"),
+    normalizeFeature(p.special_defense, "special_defense"),
+    normalizeFeature(p.speed, "speed"),
   ];
-  // 추가 boolean 플래그
   const flags = [
     p.has_different_form ? 1 : 0,
     p.has_mega ? 1 : 0,
     p.has_gigantamax ? 1 : 0,
     p.is_partner ? 1 : 0,
   ];
-  // 타입, 알 그룹 벡터
-  const typeMap = [
-    "normal",
-    "fire",
-    "water",
-    "electric",
-    "grass",
-    "ice",
-    "fighting",
-    "poison",
-    "ground",
-    "flying",
-    "psychic",
-    "bug",
-    "rock",
-    "ghost",
-    "dragon",
-    "dark",
-    "steel",
-    "fairy",
+  const typeVec = TYPE_LIST.map((t) =>
+    p.type1 === t || p.type2 === t ? 1 : 0
+  );
+  const eggVec = EGG_GROUP_LIST.map((g) =>
+    (p.egg_groups || []).includes(g) ? 1 : 0
+  );
+  const shapeVec = SHAPE_LIST.map((s) => (p.shape === s ? 1 : 0));
+  const habitatVec = HABITAT_LIST.map((h) => (p.habitat === h ? 1 : 0));
+  const colorVec = COLOR_LIST.map((c) => (p.color === c ? 1 : 0));
+  const abilityVec = ABILITY_LIST.map((a) =>
+    (p.abilities || []).includes(a) ? 1 : 0
+  );
+  const expVec = EXPERIENCE_GROUP_LIST.map((e) =>
+    p.experience_group === e ? 1 : 0
+  );
+  return [
+    ...contArr,
+    ...stats,
+    ...flags,
+    ...typeVec,
+    ...eggVec,
+    ...shapeVec,
+    ...habitatVec,
+    ...colorVec,
+    ...abilityVec,
+    ...expVec,
   ];
-  // 타입 우선도 증가: 타입 매칭 시 2점으로 가중치 적용
-  const typeVec = typeMap.map((t) => (p.type1 === t || p.type2 === t ? 2 : 0));
-  const eggMap = [
-    "monster",
-    "water1",
-    "bug",
-    "flying",
-    "field",
-    "fairy",
-    "grass",
-    "human-like",
-    "water3",
-    "mineral",
-    "amorphous",
-    "water2",
-    "ditto",
-    "dragon",
-    "undiscovered",
-  ];
-  const eggVec = eggMap.map((g) => ((p.egg_groups || []).includes(g) ? 1 : 0));
-  // 색상 벡터 추가
-  const colorMap = [
-    "black",
-    "blue",
-    "brown",
-    "gray",
-    "green",
-    "pink",
-    "purple",
-    "red",
-    "white",
-    "yellow",
-  ];
-  const colorVec = colorMap.map((c) => (p.color === c ? 1 : 0));
-
-  return [...base, ...stats, ...flags, ...typeVec, ...eggVec, ...colorVec];
 }
 
 function getScore(a, b) {
   const vecA = toVector(a);
   const vecB = toVector(b);
-  const cos = cosineSimilarity(vecA, vecB);
-  const euc = euclideanScore(vecA, vecB) / 100;
+  const weightedA = vecA.map((v, i) => v * FEATURE_WEIGHTS[i]);
+  const weightedB = vecB.map((v, i) => v * FEATURE_WEIGHTS[i]);
+  const cos = cosineSimilarity(weightedA, weightedB);
+  const euc = euclideanScore(weightedA, weightedB) / 100;
   return Math.round(((cos + euc) / 2) * 100);
 }
 
