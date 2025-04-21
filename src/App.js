@@ -18,7 +18,6 @@ function App() {
   const [correct, setCorrect] = useState(null);
   const [revealed, setRevealed] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
-  const [selected, setSelected] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
   const suggestionsRef = useRef(null);
 
