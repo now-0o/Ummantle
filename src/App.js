@@ -164,6 +164,7 @@ function App() {
           <img
             src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${correct.pokedex_number}.png`}
             alt={correct.koreanName}
+            onError={(e) => (e.target.src = "/placeholder.png")}
             width="80"
             height="80"
           />
@@ -194,6 +195,7 @@ function App() {
                 <img
                   src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${best.pokedex_number}.png`}
                   alt={best.koreanName}
+                  onError={(e) => (e.target.src = "/placeholder.png")}
                   width="40"
                   height="40"
                 />
@@ -202,8 +204,8 @@ function App() {
               <td>{best.rank}</td>
               <td>{best.score.toFixed(1)}점</td>
               <td>
-                <TypeBadge type={best.type_1} />
-                {best.type_2 && <TypeBadge type={best.type_2} />}
+                <TypeBadge type={best.type_1.toLowerCase()} />
+                {best.type_2 && <TypeBadge type={best.type_2.toLowerCase()} />}
               </td>
               <td>{best.height_m}</td>
               <td>{best.weight_kg}</td>
@@ -216,6 +218,7 @@ function App() {
                 <img
                   src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${latest.pokedex_number}.png`}
                   alt={latest.koreanName}
+                  onError={(e) => (e.target.src = "/placeholder.png")}
                   width="40"
                   height="40"
                 />
@@ -224,8 +227,10 @@ function App() {
               <td>{latest.rank}</td>
               <td>{latest.score.toFixed(1)}점</td>
               <td>
-                <TypeBadge type={latest.type_1} />
-                {latest.type_2 && <TypeBadge type={latest.type_2} />}
+                <TypeBadge type={latest.type_1.toLowerCase()} />
+                {latest.type_2 && (
+                  <TypeBadge type={latest.type_2.toLowerCase()} />
+                )}
               </td>
               <td>{latest.height_m}</td>
               <td>{latest.weight_kg}</td>
@@ -238,6 +243,7 @@ function App() {
                 <img
                   src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${g.pokedex_number}.png`}
                   alt={g.koreanName}
+                  onError={(e) => (e.target.src = "/placeholder.png")}
                   width="40"
                   height="40"
                 />
@@ -246,8 +252,8 @@ function App() {
               <td>{g.rank}</td>
               <td>{g.score.toFixed(1)}점</td>
               <td>
-                <TypeBadge type={g.type_1} />
-                {g.type_2 && <TypeBadge type={g.type_2} />}
+                <TypeBadge type={g.type_1.toLowerCase()} />
+                {g.type_2 && <TypeBadge type={g.type_2.toLowerCase()} />}
               </td>
               <td>{g.height_m}</td>
               <td>{g.weight_kg}</td>
