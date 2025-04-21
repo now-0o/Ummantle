@@ -392,7 +392,22 @@ function toVector(p) {
     "undiscovered",
   ];
   const eggVec = eggMap.map((g) => ((p.egg_groups || []).includes(g) ? 1 : 0));
-  return [...base, ...stats, ...flags, ...typeVec, ...eggVec];
+  // 색상 벡터 추가
+  const colorMap = [
+    "black",
+    "blue",
+    "brown",
+    "gray",
+    "green",
+    "pink",
+    "purple",
+    "red",
+    "white",
+    "yellow",
+  ];
+  const colorVec = colorMap.map((c) => (p.color === c ? 1 : 0));
+
+  return [...base, ...stats, ...flags, ...typeVec, ...eggVec, ...colorVec];
 }
 
 function getScore(a, b) {
