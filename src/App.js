@@ -373,7 +373,8 @@ function toVector(p) {
     "steel",
     "fairy",
   ];
-  const typeVec = typeMap.map((t) => (p.type1 === t || p.type2 === t ? 1 : 0));
+  // 타입 우선도 증가: 타입 매칭 시 2점으로 가중치 적용
+  const typeVec = typeMap.map((t) => (p.type1 === t || p.type2 === t ? 2 : 0));
   const eggMap = [
     "monster",
     "water1",
