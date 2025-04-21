@@ -1,8 +1,8 @@
 *,
 *::before,
 *::after {
-  transition: background-color 0.3s ease, color 0.3s ease,
-    border-color 0.3s ease;
+  transition: background-color 0.1s ease, color 0.1s ease,
+    border-color 0.1s ease;
 }
 
 body {
@@ -216,12 +216,6 @@ button:hover {
 
 /* 반응형 */
 @media (max-width: 600px) {
-  .input-area {
-    flex-direction: column;
-    gap: 8px;
-    align-items: stretch;
-  }
-
   .next-btn {
     width: 100%;
     transform: none;
