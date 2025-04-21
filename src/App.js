@@ -29,13 +29,14 @@ function App() {
     initGame();
   }, []);
 
-  // apply dark mode class to body
+  // toggle dark mode class
   useEffect(() => {
     document.body.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
   const rankedList = useMemo(() => {
     if (!answer) return [];
+    // compute score for each pokemon
     const list = allPokemons
       .map((p) => ({ ...p, score: getScore(p, answer) }))
       .filter((p) => p.name !== answer.name)
@@ -59,18 +60,18 @@ function App() {
       setSuggestions([]);
       return;
     }
-    const rank = rankedList.findIndex((p) => p.name === guess.name);
+    const idx = rankedList.findIndex((p) => p.name === guess.name);
     const scoredGuess = {
       ...guess,
-      rank: rank + 1,
-      score: rankedList[rank].score,
+      rank: idx + 1,
+      score: rankedList[idx].score,
       inputIndex: inputCount + 1,
     };
-    setGuesses((prev) => {
-      const exists = prev.find((g) => g.name === scoredGuess.name);
-      if (exists) return prev;
-      return [...prev, scoredGuess];
-    });
+    setGuesses((prev) =>
+      prev.find((g) => g.name === scoredGuess.name)
+        ? prev
+        : [...prev, scoredGuess]
+    );
     setInputCount((prev) => prev + 1);
     setInput("");
     setSuggestions([]);
@@ -79,11 +80,14 @@ function App() {
   const handleInputChange = (e) => {
     const value = e.target.value;
     setInput(value);
-    const matched = allPokemons.filter(
-      (p) =>
-        p.koreanName.includes(value) || p.name.includes(value.toLowerCase())
+    setSuggestions(
+      allPokemons
+        .filter(
+          (p) =>
+            p.koreanName.includes(value) || p.name.includes(value.toLowerCase())
+        )
+        .slice(0, 10)
     );
-    setSuggestions(matched.slice(0, 10));
   };
 
   const handleReveal = () => {
@@ -110,7 +114,7 @@ function App() {
         <h1>Ummantle</h1>
         <button
           className="theme-toggle"
-          onClick={() => setDarkMode((d) => !d)}
+          onClick={() => setDarkMode(!darkMode)}
           aria-label="Toggle dark mode"
         >
           {darkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -259,9 +263,9 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {rankedList.slice(0, 30).map((p, idx) => (
+                {rankedList.slice(0, 30).map((p, i) => (
                   <tr key={p.name}>
-                    <td>{idx}</td>
+                    <td>{i}</td>
                     <td>
                       {p.koreanName} ({p.name})
                     </td>
@@ -312,8 +316,7 @@ function cosineSimilarity(vecA, vecB) {
   const dot = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
   const magA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
   const magB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-  if (magA === 0 || magB === 0) return 0;
-  return dot / (magA * magB);
+  return magA && magB ? dot / (magA * magB) : 0;
 }
 
 function euclideanScore(vecA, vecB) {
@@ -324,6 +327,32 @@ function euclideanScore(vecA, vecB) {
 }
 
 function toVector(p) {
+  // 기본 수치
+  const base = [
+    p.height || 0,
+    p.weight || 0,
+    p.base_experience || 0,
+    p.capture_rate || 0,
+    p.evolution_stage || 0,
+    p.generation || 0,
+  ];
+  // 스탯
+  const stats = [
+    p.hp || 0,
+    p.attack || 0,
+    p.defense || 0,
+    p.special_attack || 0,
+    p.special_defense || 0,
+    p.speed || 0,
+  ];
+  // 추가 boolean 플래그
+  const flags = [
+    p.has_different_form ? 1 : 0,
+    p.has_mega ? 1 : 0,
+    p.has_gigantamax ? 1 : 0,
+    p.is_partner ? 1 : 0,
+  ];
+  // 타입, 알 그룹 벡터
   const typeMap = [
     "normal",
     "fire",
@@ -344,7 +373,8 @@ function toVector(p) {
     "steel",
     "fairy",
   ];
-  const eggGroupMap = [
+  const typeVec = typeMap.map((t) => (p.type1 === t || p.type2 === t ? 1 : 0));
+  const eggMap = [
     "monster",
     "water1",
     "bug",
@@ -361,28 +391,16 @@ function toVector(p) {
     "dragon",
     "undiscovered",
   ];
-  const typeVec = typeMap.map((t) => (p.type1 === t || p.type2 === t ? 1 : 0));
-  const eggVec = eggGroupMap.map((g) =>
-    (p.egg_groups ?? []).includes(g) ? 1 : 0
-  );
-  return [
-    p.height ?? 0,
-    p.weight ?? 0,
-    p.base_experience ?? 0,
-    p.capture_rate ?? 0,
-    p.evolution_stage ?? 0,
-    p.generation ?? 0,
-    ...typeVec,
-    ...eggVec,
-  ];
+  const eggVec = eggMap.map((g) => ((p.egg_groups || []).includes(g) ? 1 : 0));
+  return [...base, ...stats, ...flags, ...typeVec, ...eggVec];
 }
 
 function getScore(a, b) {
   const vecA = toVector(a);
   const vecB = toVector(b);
-  const cosine = cosineSimilarity(vecA, vecB);
-  const euclidean = euclideanScore(vecA, vecB) / 100;
-  return Math.round(((cosine + euclidean) / 2) * 100);
+  const cos = cosineSimilarity(vecA, vecB);
+  const euc = euclideanScore(vecA, vecB) / 100;
+  return Math.round(((cos + euc) / 2) * 100);
 }
 
 export default App;
