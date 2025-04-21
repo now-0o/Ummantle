@@ -5,20 +5,11 @@ import TypeBadge from "./components/TypeBadge";
 import "./App.css";
 
 // Import normalization and weight definitions
-import {
-  normalizeFeature,
-  FEATURE_WEIGHTS,
-  TYPE_LIST,
-  EGG_GROUP_LIST,
-  SHAPE_LIST,
-  HABITAT_LIST,
-  COLOR_LIST,
-  ABILITY_LIST,
-  EXPERIENCE_GROUP_LIST,
-} from "./scoreUtils";
+import { calculateSimilarityVector, calculateRanks } from "./scoreUtils";
 
 function App() {
   const [allPokemons, setAllPokemons] = useState([]);
+  const [similarityVector, setSimilarityVector] = useState(null);
   const [answer, setAnswer] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +26,9 @@ function App() {
       const res = await fetch("/enriched_pokemons.json");
       const fetched = await res.json();
       setAllPokemons(fetched);
+      // 미리 계산해둔 전체 유사도 행렬
+      const simVec = calculateSimilarityVector(fetched);
+      setSimilarityVector(simVec);
       const random = fetched[Math.floor(Math.random() * fetched.length)];
       setAnswer(random);
       setLoading(false);
@@ -42,19 +36,25 @@ function App() {
     initGame();
   }, []);
 
-  // Apply dark mode class to body
+  // 다크 모드 클래스 토글
   useEffect(() => {
     document.body.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
+  // 현재 정답과 비교해서 점수 매기기
   const rankedList = useMemo(() => {
-    if (!answer) return [];
+    if (!answer || !similarityVector) return [];
+    // similarityVector[i][j]는 i번째와 j번째 포켓몬 유사도(0~1)
+    const idxAnswer = allPokemons.findIndex((p) => p.name === answer.name);
     const list = allPokemons
-      .map((p) => ({ ...p, score: getScore(p, answer) }))
+      .map((p, idx) => ({
+        ...p,
+        score: Math.round(similarityVector[idx][idxAnswer] * 100),
+      }))
       .filter((p) => p.name !== answer.name)
       .sort((a, b) => b.score - a.score);
     return [{ ...answer, score: 100 }, ...list];
-  }, [allPokemons, answer]);
+  }, [allPokemons, answer, similarityVector]);
 
   const handleGuess = () => {
     if (!answer) return;
@@ -133,6 +133,7 @@ function App() {
         </button>
       </header>
 
+      {/* 입력창 & 자동완성 */}
       <div className="input-area">
         <div className="input-wrapper">
           <input
@@ -163,6 +164,7 @@ function App() {
         </button>
       </div>
 
+      {/* 정답 표시 */}
       {correct && (
         <div className="correct-box">
           <h2>🎉 정답입니다! 🎉</h2>
@@ -179,6 +181,7 @@ function App() {
         </div>
       )}
 
+      {/* 추측 리스트 */}
       <table className="guess-table">
         <thead>
           <tr>
@@ -262,6 +265,7 @@ function App() {
         </tbody>
       </table>
 
+      {/* 순위 모달 */}
       {showRanking && (
         <div className="modal-overlay" onClick={() => setShowRanking(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -277,7 +281,7 @@ function App() {
               <tbody>
                 {rankedList.slice(0, 30).map((p, idx) => (
                   <tr key={p.name}>
-                    <td>{idx}</td>
+                    <td>{idx + 1}</td>
                     <td>
                       {p.koreanName} ({p.name})
                     </td>
@@ -297,6 +301,7 @@ function App() {
         </div>
       )}
 
+      {/* 하단 버튼 박스 */}
       <div className="btn-box">
         <button className="next-btn" onClick={() => window.location.reload()}>
           다음 문제
@@ -322,82 +327,6 @@ function App() {
       </div>
     </div>
   );
-}
-
-function cosineSimilarity(vecA, vecB) {
-  const dot = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
-  const magA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
-  const magB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-  return magA && magB ? dot / (magA * magB) : 0;
-}
-
-function euclideanScore(vecA, vecB) {
-  const dist = Math.sqrt(
-    vecA.reduce((sum, a, i) => sum + Math.pow(a - vecB[i], 2), 0)
-  );
-  return Math.max(0, 100 - dist);
-}
-
-function toVector(p) {
-  const contArr = [
-    normalizeFeature(p.height, "height"),
-    normalizeFeature(p.weight, "weight"),
-    normalizeFeature(p.base_experience, "base_experience"),
-    normalizeFeature(p.capture_rate, "capture_rate"),
-    normalizeFeature(p.evolution_stage, "evolution_stage"),
-    normalizeFeature(p.generation, "generation"),
-  ];
-  const stats = [
-    normalizeFeature(p.hp, "hp"),
-    normalizeFeature(p.attack, "attack"),
-    normalizeFeature(p.defense, "defense"),
-    normalizeFeature(p.special_attack, "special_attack"),
-    normalizeFeature(p.special_defense, "special_defense"),
-    normalizeFeature(p.speed, "speed"),
-  ];
-  const flags = [
-    p.has_different_form ? 1 : 0,
-    p.has_mega ? 1 : 0,
-    p.has_gigantamax ? 1 : 0,
-    p.is_partner ? 1 : 0,
-  ];
-  const typeVec = TYPE_LIST.map((t) =>
-    p.type1 === t || p.type2 === t ? 1 : 0
-  );
-  const eggVec = EGG_GROUP_LIST.map((g) =>
-    (p.egg_groups || []).includes(g) ? 1 : 0
-  );
-  const shapeVec = SHAPE_LIST.map((s) => (p.shape === s ? 1 : 0));
-  const habitatVec = HABITAT_LIST.map((h) => (p.habitat === h ? 1 : 0));
-  const colorVec = COLOR_LIST.map((c) => (p.color === c ? 1 : 0));
-  const abilityVec = ABILITY_LIST.map((a) =>
-    (p.abilities || []).includes(a) ? 1 : 0
-  );
-  const expVec = EXPERIENCE_GROUP_LIST.map((e) =>
-    p.experience_group === e ? 1 : 0
-  );
-  return [
-    ...contArr,
-    ...stats,
-    ...flags,
-    ...typeVec,
-    ...eggVec,
-    ...shapeVec,
-    ...habitatVec,
-    ...colorVec,
-    ...abilityVec,
-    ...expVec,
-  ];
-}
-
-function getScore(a, b) {
-  const vecA = toVector(a);
-  const vecB = toVector(b);
-  const weightedA = vecA.map((v, i) => v * FEATURE_WEIGHTS[i]);
-  const weightedB = vecB.map((v, i) => v * FEATURE_WEIGHTS[i]);
-  const cos = cosineSimilarity(weightedA, weightedB);
-  const euc = euclideanScore(weightedA, weightedB) / 100;
-  return Math.round(((cos + euc) / 2) * 100);
 }
 
 export default App;
