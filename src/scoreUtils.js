@@ -1,12 +1,12 @@
 // src/scoreUtils.js
-// JavaScript port of PokéMantle's backend/app/poke2vec.py & score.py logic
+// JS 포팅: backend/app/poke2vec.py & score.py
 
-// Utility: one-hot 범주형 인코딩 목록 생성
+// 1) 유틸: one‑hot 인코딩용
 function uniqueSorted(arr) {
   return Array.from(new Set(arr.filter((x) => x != null))).sort();
 }
 
-// 연속형 행렬 max 정규화
+// 2) 연속형 max 정규화
 function maxNormalize(matrix) {
   const cols = matrix[0].length;
   const maxs = Array(cols).fill(0);
@@ -18,13 +18,13 @@ function maxNormalize(matrix) {
   return matrix.map((row) => row.map((v, i) => (maxs[i] ? v / maxs[i] : 0)));
 }
 
-// 코사인 유사도 계산
+// 3) 코사인 유사도 행렬
 function calculateCosineMatrix(mat) {
   const n = mat.length;
   const result = Array(n)
     .fill(0)
     .map(() => Array(n).fill(0));
-  const norms = mat.map((row) => Math.sqrt(row.reduce((s, v) => s + v * v, 0)));
+  const norms = mat.map((r) => Math.sqrt(r.reduce((s, v) => s + v * v, 0)));
   for (let i = 0; i < n; i++) {
     for (let j = i; j < n; j++) {
       const dot = mat[i].reduce((s, v, k) => s + v * mat[j][k], 0);
@@ -35,11 +35,12 @@ function calculateCosineMatrix(mat) {
   return result;
 }
 
-// 유클리드 기반 유사도 계산 (1 - normalized distance)
+// 4) 유클리드 유사도 행렬 (1 - 거리/최대거리)
 function calculateEuclideanMatrix(mat) {
   const n = mat.length;
   const normed = maxNormalize(mat);
   let maxDist = 0;
+  // 최대거리 계산
   for (let i = 0; i < n; i++) {
     for (let j = i; j < n; j++) {
       const dist = Math.sqrt(
@@ -48,6 +49,7 @@ function calculateEuclideanMatrix(mat) {
       if (dist > maxDist) maxDist = dist;
     }
   }
+  // 유사도 행렬 생성
   const result = Array(n)
     .fill(0)
     .map(() => Array(n).fill(0));
@@ -63,11 +65,11 @@ function calculateEuclideanMatrix(mat) {
   return result;
 }
 
-// 전체 유사도 행렬 계산: (cosine*2 + euclidean*1)/3
+// 5) similarityVector 계산
 export function calculateSimilarityVector(pokedex) {
   const df = pokedex;
 
-  // 범주형 one‑hot 인코딩 준비
+  // 범주형 one‑hot 준비
   const gens = uniqueSorted(df.map((p) => p.generation));
   const statuses = uniqueSorted(df.map((p) => p.status));
   const species = uniqueSorted(df.map((p) => p.species));
@@ -78,7 +80,7 @@ export function calculateSimilarityVector(pokedex) {
   const growth = uniqueSorted(df.map((p) => p.growth_rate));
   const eggs = uniqueSorted(df.flatMap((p) => [p.egg_type_1, p.egg_type_2]));
 
-  // 카테고리 매트릭스
+  // 카테고리 행렬
   const catMat = df.map((p) => [
     ...gens.map((g) => (p.generation === g ? 1 : 0)),
     ...statuses.map((s) => (p.status === s ? 1 : 0)),
@@ -91,7 +93,7 @@ export function calculateSimilarityVector(pokedex) {
     ...eggs.map((e) => ([p.egg_type_1, p.egg_type_2].includes(e) ? 1 : 0)),
   ]);
 
-  // 숫자형 매트릭스
+  // 수치형 행렬
   const numCols = [
     "type_number",
     "height_m",
@@ -126,25 +128,27 @@ export function calculateSimilarityVector(pokedex) {
   ];
   const numMat = df.map((p) => numCols.map((c) => p[c] || 0));
 
-  // 유사도 행렬 생성
+  // 유사도 결합
   const cosMat = calculateCosineMatrix(catMat);
   const eucMat = calculateEuclideanMatrix(numMat);
-
   const n = df.length;
   const simVec = Array(n)
     .fill(0)
     .map(() => Array(n).fill(0));
+
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
+      // (cosine*2 + euclidean*1) / 3
       simVec[i][j] = (cosMat[i][j] * 2 + eucMat[i][j] * 1) / 3;
     }
   }
   return simVec;
 }
 
-// 주어진 index 기준으로 순위 리스트 반환
-export function calculateRanks(index, pokedex, similarityVector) {
-  const sims = similarityVector[index];
+// 6) 순위 리스트 반환
+export function calculateRanks(index, pokedex, simVec) {
+  const sims = simVec[index];
+  // 내림차순 정렬
   const idxs = Array.from(sims.keys()).sort((a, b) => sims[b] - sims[a]);
   return idxs.map((i, rank) => ({
     name: pokedex[i].name,

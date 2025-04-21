@@ -3,13 +3,11 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Sun, Moon } from "lucide-react";
 import TypeBadge from "./components/TypeBadge";
 import "./App.css";
-
-// Import normalization and weight definitions
-import { calculateSimilarityVector, calculateRanks } from "./scoreUtils";
+import { calculateSimilarityVector } from "./scoreUtils";
 
 function App() {
   const [allPokemons, setAllPokemons] = useState([]);
-  const [similarityVector, setSimilarityVector] = useState(null);
+  const [simVec, setSimVec] = useState(null);
   const [answer, setAnswer] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,40 +19,36 @@ function App() {
   const [showRanking, setShowRanking] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
+  // 초기 데이터 및 유사도 행렬 계산
   useEffect(() => {
-    async function initGame() {
+    async function init() {
       const res = await fetch("/enriched_pokemons.json");
       const fetched = await res.json();
       setAllPokemons(fetched);
-      // 미리 계산해둔 전체 유사도 행렬
-      const simVec = calculateSimilarityVector(fetched);
-      setSimilarityVector(simVec);
+      const matrix = calculateSimilarityVector(fetched);
+      setSimVec(matrix);
       const random = fetched[Math.floor(Math.random() * fetched.length)];
       setAnswer(random);
       setLoading(false);
     }
-    initGame();
+    init();
   }, []);
 
-  // 다크 모드 클래스 토글
+  // 다크 모드 토글 적용
   useEffect(() => {
     document.body.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  // 현재 정답과 비교해서 점수 매기기
+  // 정답 대비 전체 순위 리스트
   const rankedList = useMemo(() => {
-    if (!answer || !similarityVector) return [];
-    // similarityVector[i][j]는 i번째와 j번째 포켓몬 유사도(0~1)
-    const idxAnswer = allPokemons.findIndex((p) => p.name === answer.name);
+    if (!answer || !simVec) return [];
+    const idxA = allPokemons.findIndex((p) => p.name === answer.name);
     const list = allPokemons
-      .map((p, idx) => ({
-        ...p,
-        score: Math.round(similarityVector[idx][idxAnswer] * 100),
-      }))
+      .map((p, i) => ({ ...p, score: Math.round(simVec[i][idxA] * 100) }))
       .filter((p) => p.name !== answer.name)
       .sort((a, b) => b.score - a.score);
     return [{ ...answer, score: 100 }, ...list];
-  }, [allPokemons, answer, similarityVector]);
+  }, [allPokemons, answer, simVec]);
 
   const handleGuess = () => {
     if (!answer) return;
@@ -133,7 +127,6 @@ function App() {
         </button>
       </header>
 
-      {/* 입력창 & 자동완성 */}
       <div className="input-area">
         <div className="input-wrapper">
           <input
@@ -164,7 +157,6 @@ function App() {
         </button>
       </div>
 
-      {/* 정답 표시 */}
       {correct && (
         <div className="correct-box">
           <h2>🎉 정답입니다! 🎉</h2>
@@ -181,7 +173,6 @@ function App() {
         </div>
       )}
 
-      {/* 추측 리스트 */}
       <table className="guess-table">
         <thead>
           <tr>
@@ -265,7 +256,6 @@ function App() {
         </tbody>
       </table>
 
-      {/* 순위 모달 */}
       {showRanking && (
         <div className="modal-overlay" onClick={() => setShowRanking(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -301,7 +291,6 @@ function App() {
         </div>
       )}
 
-      {/* 하단 버튼 박스 */}
       <div className="btn-box">
         <button className="next-btn" onClick={() => window.location.reload()}>
           다음 문제
