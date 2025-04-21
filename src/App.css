@@ -12,6 +12,10 @@ body {
   background-color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 90vh;
+  position: relative;
 }
 
 h1 {
@@ -24,14 +28,27 @@ h1 {
   gap: 10px;
   justify-content: center;
   margin-bottom: 10px;
+  position: relative;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  align-items: flex-start;
+  z-index: 200;
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+  flex: 1;
 }
 
 input {
   padding: 10px;
   font-size: 16px;
-  flex: 1;
   border: 1px solid #ccc;
   border-radius: 8px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 button {
@@ -43,6 +60,7 @@ button {
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
 button:hover {
@@ -52,15 +70,17 @@ button:hover {
 .suggestions {
   list-style: none;
   padding: 0;
-  margin: 5px 0 20px;
+  margin: 0;
   border: 1px solid #ddd;
   border-radius: 8px;
   max-height: 200px;
   overflow-y: auto;
   background: white;
   position: absolute;
-  width: 100%;
-  max-width: 800px;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 300;
 }
 
 .suggestions li {
@@ -76,6 +96,7 @@ button:hover {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  margin-bottom: 80px;
 }
 
 .guess-table th,
@@ -89,18 +110,96 @@ button:hover {
   background-color: #edf2f7;
 }
 
+.correct-box {
+  margin: 30px 0;
+  padding: 20px;
+  border: 2px solid #48bb78;
+  background-color: #f0fff4;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.correct-box h2 {
+  color: #2f855a;
+  margin-bottom: 10px;
+}
+
+.correct-box p {
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.correct-box img {
+  margin-bottom: 10px;
+}
+
+.btn-box {
+  display: flex;
+  position: fixed;
+  bottom: 20px; /* 기존보다 더 아래로 내림 */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .next-btn {
-  display: block;
-  margin: 30px auto 0;
+  padding: 12px 20px;
+  font-size: 16px;
   background-color: #38a169;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 999;
+  width: auto;
+  min-width: 120px;
+  margin: 5px;
 }
 
 .next-btn:hover {
   background-color: #2f855a;
 }
 
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+  margin-bottom: 40px; /* 여유 공간 확보 */
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  z-index: 998;
+  background: white;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+}
+
 .loading {
   font-size: 20px;
   text-align: center;
   padding: 50px;
+}
+
+/* 반응형 */
+@media (max-width: 600px) {
+  .input-area {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .next-btn {
+    width: 100%;
+    transform: none;
+    left: auto;
+  }
+
+  .guess-table th,
+  .guess-table td {
+    font-size: 12px;
+    padding: 6px;
+  }
 }

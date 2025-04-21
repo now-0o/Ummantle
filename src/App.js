@@ -1,5 +1,6 @@
 // src/App.js
 import React, { useEffect, useState, useMemo } from "react";
+import TypeBadge from "./components/TypeBadge";
 import "./App.css";
 
 function App() {
@@ -10,6 +11,9 @@ function App() {
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [inputCount, setInputCount] = useState(0);
+  const [correct, setCorrect] = useState(null);
+  const [revealed, setRevealed] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
 
   useEffect(() => {
     async function initGame() {
@@ -25,21 +29,39 @@ function App() {
 
   const rankedList = useMemo(() => {
     if (!answer) return [];
-    return allPokemons
+    const list = allPokemons
       .map((p) => ({ ...p, score: getScore(p, answer) }))
+      .filter((p) => p.name !== answer.name)
       .sort((a, b) => b.score - a.score);
+    return [{ ...answer, score: 100 }, ...list];
   }, [allPokemons, answer]);
 
   const handleGuess = () => {
-    const guess = rankedList.find(
+    if (!answer) return;
+
+    const guess = allPokemons.find(
       (p) => p.koreanName === input || p.name === input.toLowerCase()
     );
     if (!guess) {
       alert("해당 포켓몬이 없어요!");
       return;
     }
-    const rank = rankedList.findIndex((p) => p.name === guess.name) + 1;
-    const scoredGuess = { ...guess, rank, inputIndex: inputCount + 1 };
+
+    if (guess.name === answer.name) {
+      setCorrect({ ...guess, inputIndex: inputCount + 1, score: 100 });
+      setInputCount((prev) => prev + 1);
+      setInput("");
+      setSuggestions([]);
+      return;
+    }
+
+    const rank = rankedList.findIndex((p) => p.name === guess.name);
+    const scoredGuess = {
+      ...guess,
+      rank: rank + 1,
+      score: rankedList[rank].score,
+      inputIndex: inputCount + 1,
+    };
     setGuesses((prev) => {
       const exists = prev.find((g) => g.name === scoredGuess.name);
       if (exists) return prev;
@@ -60,6 +82,13 @@ function App() {
     setSuggestions(matched.slice(0, 10));
   };
 
+  const handleReveal = () => {
+    if (window.confirm("정말 정답을 보시겠습니까?")) {
+      setCorrect({ ...answer, inputIndex: "?", score: 100 });
+      setRevealed(true);
+    }
+  };
+
   if (loading)
     return <div className="loading">포켓몬 데이터 불러오는 중...</div>;
 
@@ -67,37 +96,60 @@ function App() {
     guesses.length > 0
       ? guesses.reduce((a, b) => (a.rank < b.rank ? a : b))
       : null;
+
+  const latest = guesses.length > 0 ? guesses[guesses.length - 1] : null;
+
   const others = guesses
-    .filter((g) => g.name !== best?.name)
-    .sort((a, b) => b.inputIndex - a.inputIndex);
+    .filter((g) => g.name !== best?.name && g.name !== latest?.name)
+    .sort((a, b) => a.rank - b.rank);
 
   return (
     <div className="container">
-      <h1>Ummantle</h1>
+      <h1>Pokemantle</h1>
       <div className="input-area">
-        <input
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={(e) => e.key === "Enter" && handleGuess()}
-          placeholder="포켓몬 이름 입력"
-        />
-        <button onClick={handleGuess}>입력</button>
+        <div className="input-wrapper">
+          <input
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={(e) => e.key === "Enter" && handleGuess()}
+            placeholder="포켓몬 이름 입력"
+            disabled={!!correct}
+          />
+          {suggestions.length > 0 && (
+            <ul className="suggestions">
+              {suggestions.map((s) => (
+                <li
+                  key={s.name}
+                  onClick={() => {
+                    setInput(s.koreanName);
+                    setSuggestions([]);
+                  }}
+                >
+                  {s.koreanName} ({s.name})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <button onClick={handleGuess} disabled={!!correct}>
+          입력
+        </button>
       </div>
 
-      {suggestions.length > 0 && (
-        <ul className="suggestions">
-          {suggestions.map((s) => (
-            <li
-              key={s.name}
-              onClick={() => {
-                setInput(s.koreanName);
-                setSuggestions([]);
-              }}
-            >
-              {s.koreanName} ({s.name})
-            </li>
-          ))}
-        </ul>
+      {correct && (
+        <div className="correct-box">
+          <h2>🎉 정답입니다! 🎉</h2>
+          <p>{correct.inputIndex}회 만에 맞추셨습니다!</p>
+          <img
+            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${correct.id}.png`}
+            alt={correct.koreanName}
+            width="80"
+            height="80"
+          />
+          <h3>
+            {correct.koreanName} ({correct.name})
+          </h3>
+        </div>
       )}
 
       <table className="guess-table">
@@ -129,11 +181,33 @@ function App() {
               <td>{best.rank}</td>
               <td>{best.score.toFixed(1)}점</td>
               <td>
-                {best.type1}
-                {best.type2 ? "/" + best.type2 : ""}
+                <TypeBadge type={best.type1} />
+                {best.type2 && <TypeBadge type={best.type2} />}
               </td>
               <td>{best.height}</td>
               <td>{best.weight}</td>
+            </tr>
+          )}
+          {latest && latest.name !== best?.name && (
+            <tr key={latest.name}>
+              <td>{latest.inputIndex}</td>
+              <td>
+                <img
+                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${latest.id}.png`}
+                  alt={latest.koreanName}
+                  width="40"
+                  height="40"
+                />
+              </td>
+              <td>{latest.koreanName}</td>
+              <td>{latest.rank}</td>
+              <td>{latest.score.toFixed(1)}점</td>
+              <td>
+                <TypeBadge type={latest.type1} />
+                {latest.type2 && <TypeBadge type={latest.type2} />}
+              </td>
+              <td>{latest.height}</td>
+              <td>{latest.weight}</td>
             </tr>
           )}
           {others.map((g) => (
@@ -151,8 +225,8 @@ function App() {
               <td>{g.rank}</td>
               <td>{g.score.toFixed(1)}점</td>
               <td>
-                {g.type1}
-                {g.type2 ? "/" + g.type2 : ""}
+                <TypeBadge type={g.type1} />
+                {g.type2 && <TypeBadge type={g.type2} />}
               </td>
               <td>{g.height}</td>
               <td>{g.weight}</td>
@@ -161,9 +235,55 @@ function App() {
         </tbody>
       </table>
 
-      <button className="next-btn" onClick={() => window.location.reload()}>
-        다음 문제
-      </button>
+      {showRanking && (
+        <div className="correct-box">
+          <h2>전체 유사도 순위</h2>
+          <table className="guess-table">
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>이름</th>
+                <th>유사도</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rankedList.slice(0, 30).map((p, idx) => (
+                <tr key={p.name}>
+                  <td>{idx}</td>
+                  <td>
+                    {p.koreanName} ({p.name})
+                  </td>
+                  <td>{p.score.toFixed(1)}점</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="btn-box">
+        <button className="next-btn" onClick={() => window.location.reload()}>
+          다음 문제
+        </button>
+        {!correct && !revealed && (
+          <button
+            className="next-btn"
+            style={{ backgroundColor: "#718096" }}
+            onClick={handleReveal}
+          >
+            정답보기
+          </button>
+        )}
+        {(correct || revealed) && (
+          <button
+            className="next-btn"
+            style={{ backgroundColor: "#4A5568" }}
+            onClick={() => setShowRanking(true)}
+          >
+            순위보기
+          </button>
+        )}
+      </div>
     </div>
   );
 }
