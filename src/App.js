@@ -162,7 +162,7 @@ function App() {
           <h2>🎉 정답입니다! 🎉</h2>
           <p>{correct.inputIndex}회 만에 맞추셨습니다!</p>
           <img
-            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${correct.id}.png`}
+            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${correct.pokedex_number}.png`}
             alt={correct.koreanName}
             width="80"
             height="80"
@@ -192,7 +192,7 @@ function App() {
               <td>{best.inputIndex}</td>
               <td>
                 <img
-                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${best.id}.png`}
+                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${best.pokedex_number}.png`}
                   alt={best.koreanName}
                   width="40"
                   height="40"
@@ -202,11 +202,11 @@ function App() {
               <td>{best.rank}</td>
               <td>{best.score.toFixed(1)}점</td>
               <td>
-                <TypeBadge type={best.type1} />
-                {best.type2 && <TypeBadge type={best.type2} />}
+                <TypeBadge type={best.type_1} />
+                {best.type_2 && <TypeBadge type={best.type_2} />}
               </td>
-              <td>{best.height}</td>
-              <td>{best.weight}</td>
+              <td>{best.height_m}</td>
+              <td>{best.weight_kg}</td>
             </tr>
           )}
           {latest && latest.name !== best?.name && (
@@ -214,7 +214,7 @@ function App() {
               <td>{latest.inputIndex}</td>
               <td>
                 <img
-                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${latest.id}.png`}
+                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${latest.pokedex_number}.png`}
                   alt={latest.koreanName}
                   width="40"
                   height="40"
@@ -224,11 +224,11 @@ function App() {
               <td>{latest.rank}</td>
               <td>{latest.score.toFixed(1)}점</td>
               <td>
-                <TypeBadge type={latest.type1} />
-                {latest.type2 && <TypeBadge type={latest.type2} />}
+                <TypeBadge type={latest.type_1} />
+                {latest.type_2 && <TypeBadge type={latest.type_2} />}
               </td>
-              <td>{latest.height}</td>
-              <td>{latest.weight}</td>
+              <td>{latest.height_m}</td>
+              <td>{latest.weight_kg}</td>
             </tr>
           )}
           {others.map((g) => (
@@ -236,7 +236,7 @@ function App() {
               <td>{g.inputIndex}</td>
               <td>
                 <img
-                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${g.id}.png`}
+                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${g.pokedex_number}.png`}
                   alt={g.koreanName}
                   width="40"
                   height="40"
@@ -246,11 +246,11 @@ function App() {
               <td>{g.rank}</td>
               <td>{g.score.toFixed(1)}점</td>
               <td>
-                <TypeBadge type={g.type1} />
-                {g.type2 && <TypeBadge type={g.type2} />}
+                <TypeBadge type={g.type_1} />
+                {g.type_2 && <TypeBadge type={g.type_2} />}
               </td>
-              <td>{g.height}</td>
-              <td>{g.weight}</td>
+              <td>{g.height_m}</td>
+              <td>{g.weight_kg}</td>
             </tr>
           ))}
         </tbody>
