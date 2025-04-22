@@ -305,3 +305,92 @@ body.dark .modal-content {
 body.dark .theme-toggle {
   color: #e2e8f0;
 }
+
+/* 상세정보 행 배경 없애고 여유 공간 확보 */
+.detail-row td {
+  padding: 0;
+  border: none;
+}
+
+/* 상세정보 카드 */
+.detail-card {
+  display: flex;
+  align-items: flex-start;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  gap: 16px;
+}
+
+.detail-img {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.detail-info {
+  flex: 1;
+}
+
+.detail-info h4 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+.detail-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+/* detail-row 칸 여백 제거 */
+.detail-row td {
+  padding: 0;
+  border: none;
+}
+
+/* 상세정보용 테이블 */
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: inherit;
+}
+
+.detail-table th,
+.detail-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+/* 헤더 셀 강조 */
+.detail-table th {
+  background-color: #f7fafc;
+  text-align: left;
+  width: 100px;
+}
+
+/* 이미지 셀 스타일 */
+.detail-img-cell {
+  padding: 8px;
+  border: none;
+  text-align: center;
+}
+
+/* 이미지 크기 확대 */
+.detail-img-large {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+/* 어두운 모드 대응 (선택) */
+body.dark .detail-table th {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}

@@ -19,6 +19,7 @@ function App() {
   const [revealed, setRevealed] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [selectedName, setSelectedName] = useState(null);
   const suggestionsRef = useRef(null);
 
   // 초기 데이터 로드 및 유사도 행렬 계산
@@ -102,6 +103,8 @@ function App() {
   // 추측 처리
   const handleGuess = () => {
     if (!answer) return;
+
+    // 입력한 이름에 해당하는 포켓몬 객체 찾기
     const guess = allPokemons.find(
       (p) => p.koreanName === input || p.name === input.toLowerCase()
     );
@@ -109,21 +112,39 @@ function App() {
       alert("해당 포켓몬이 없어요!");
       return;
     }
+
+    // 정답을 맞춘 경우
     if (guess.name === answer.name) {
       setCorrect({ ...guess, inputIndex: inputCount + 1, score: 100 });
+      // 정답도 처음 맞춘 경우에만 카운트 증가
+      setInputCount((i) => i + 1);
     } else {
+      // 순위와 점수 계산
       const idx = rankedList.findIndex((p) => p.name === guess.name);
+      const prevItem = guesses.find((x) => x.name === guess.name);
+      // 이전에 입력된 적 있으면 기존 inputIndex 유지, 없으면 새로 할당
+      const newIndex = prevItem ? prevItem.inputIndex : inputCount + 1;
+
       const g = {
         ...guess,
         rank: idx + 1,
         score: rankedList[idx].score,
-        inputIndex: inputCount + 1,
+        inputIndex: newIndex,
       };
-      setGuesses((prev) =>
-        prev.some((x) => x.name === g.name) ? prev : [...prev, g]
-      );
+
+      // 중복 제거 후, 항상 맨 뒤(=최상단)로 추가
+      setGuesses((prev) => {
+        const filtered = prev.filter((x) => x.name !== g.name);
+        return [...filtered, g];
+      });
+
+      // 새 포켓몬일 때만 카운트 증가
+      if (!prevItem) {
+        setInputCount((i) => i + 1);
+      }
     }
-    setInputCount((i) => i + 1);
+
+    // 입력창 초기화
     setInput("");
     setSuggestions([]);
     setHighlightIndex(-1);
@@ -155,15 +176,17 @@ function App() {
   if (loading)
     return <div className="loading">포켓몬 데이터 불러오는 중...</div>;
 
-  //best, latest, others
-  const best =
-    guesses.length > 0
-      ? guesses.reduce((a, b) => (a.rank < b.rank ? a : b))
-      : null;
   const latest = guesses.length ? guesses[guesses.length - 1] : null;
+
   const others = guesses
-    .filter((g) => g.name !== best?.name && g.name !== latest?.name)
+    .filter((g) => g.name !== latest?.name)
     .sort((a, b) => a.rank - b.rank);
+
+  const displayList = latest ? [latest, ...others] : others;
+
+  const toggleDetail = (name) => {
+    setSelectedName((prev) => (prev === name ? null : name));
+  };
 
   return (
     <div className="container">
@@ -241,76 +264,97 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {best && (
-            <tr key={best.name} style={{ cursor: "pointer" }}>
-              <td>{best.inputIndex}</td>
-              <td>
-                <img
-                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${best.pokedex_number}.png`}
-                  alt={best.koreanName}
-                  onError={(e) => (e.target.src = "/placeholder.png")}
-                  width="40"
-                  height="40"
-                />
-              </td>
-              <td>{best.koreanName}</td>
-              <td>{best.rank}</td>
-              <td>{best.score}점</td>
-              <td>
-                <TypeBadge type={best.type_1.toLowerCase()} />
-                {best.type_2 && <TypeBadge type={best.type_2.toLowerCase()} />}
-              </td>
-              <td>{best.height_m}m</td>
-              <td>{best.weight_kg}kg</td>
-            </tr>
-          )}
-          {latest && latest.name !== best?.name && (
-            <tr key={latest.name} style={{ cursor: "pointer" }}>
-              <td>{latest.inputIndex}</td>
-              <td>
-                <img
-                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${latest.pokedex_number}.png`}
-                  alt={latest.koreanName}
-                  onError={(e) => (e.target.src = "/placeholder.png")}
-                  width="40"
-                  height="40"
-                />
-              </td>
-              <td>{latest.koreanName}</td>
-              <td>{latest.rank}</td>
-              <td>{latest.score}점</td>
-              <td>
-                <TypeBadge type={latest.type_1.toLowerCase()} />
-                {latest.type_2 && (
-                  <TypeBadge type={latest.type_2.toLowerCase()} />
-                )}
-              </td>
-              <td>{latest.height_m}m</td>
-              <td>{latest.weight_kg}kg</td>
-            </tr>
-          )}
-          {others.map((g) => (
-            <tr key={g.name} style={{ cursor: "pointer" }}>
-              <td>{g.inputIndex}</td>
-              <td>
-                <img
-                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${g.pokedex_number}.png`}
-                  alt={g.koreanName}
-                  onError={(e) => (e.target.src = "/placeholder.png")}
-                  width="40"
-                  height="40"
-                />
-              </td>
-              <td>{g.koreanName}</td>
-              <td>{g.rank}</td>
-              <td>{g.score}점</td>
-              <td>
-                <TypeBadge type={g.type_1.toLowerCase()} />
-                {g.type_2 && <TypeBadge type={g.type_2.toLowerCase()} />}
-              </td>
-              <td>{g.height_m}m</td>
-              <td>{g.weight_kg}kg</td>
-            </tr>
+          {displayList.map((g) => (
+            <React.Fragment key={g.name}>
+              {/* 1) 클릭 행 */}
+              <tr
+                onClick={() => toggleDetail(g.name)}
+                style={{ cursor: "pointer" }}
+              >
+                <td>{g.inputIndex}</td>
+                <td>
+                  <img
+                    src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${g.pokedex_number}.png`}
+                    alt={g.koreanName}
+                    onError={(e) => (e.target.src = "/placeholder.png")}
+                    width="40"
+                    height="40"
+                  />
+                </td>
+                <td>{g.koreanName}</td>
+                <td>{g.rank}</td>
+                <td>{g.score}점</td>
+                <td>
+                  <TypeBadge type={g.type_1.toLowerCase()} />
+                  {g.type_2 && <TypeBadge type={g.type_2.toLowerCase()} />}
+                </td>
+                <td>{g.height_m}m</td>
+                <td>{g.weight_kg}kg</td>
+              </tr>
+              {/* 2) 상세정보 토글 */}
+              {selectedName === g.name && (
+                <tr className="detail-row">
+                  <td colSpan={8}>
+                    <table className="detail-table">
+                      <tbody>
+                        <tr>
+                          <td rowSpan={5} className="detail-img-cell">
+                            <img
+                              src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${g.pokedex_number}.png`}
+                              alt={g.koreanName}
+                              onError={(e) =>
+                                (e.target.src = "/placeholder.png")
+                              }
+                              className="detail-img-large"
+                            />
+                          </td>
+                          <th>이름</th>
+                          <td colSpan={2}>
+                            {g.koreanName} ({g.name})
+                          </td>
+                          <th>분류</th>
+                          <td>{g.species}</td>
+                        </tr>
+                        <tr>
+                          <th>세대</th>
+                          <td colSpan={2}>{g.generation}세대</td>
+                          <th>유사도</th>
+                          <td>{g.score}점</td>
+                        </tr>
+                        <tr>
+                          <th>키</th>
+                          <td colSpan={2}>{g.height_m}m</td>
+                          <th>몸무게</th>
+                          <td>{g.weight_kg}kg</td>
+                        </tr>
+                        <tr>
+                          <th>타입</th>
+                          <td colSpan={2}>
+                            <TypeBadge type={g.type_1.toLowerCase()} />
+                            {g.type_2 && (
+                              <TypeBadge type={g.type_2.toLowerCase()} />
+                            )}
+                          </td>
+                          <th>알그룹</th>
+                          <td>
+                            {g.egg_type_1}
+                            {g.egg_type_2 ? `, ${g.egg_type_2}` : ""}
+                          </td>
+                        </tr>
+                        <tr>
+                          <th>능력치</th>
+                          <td colSpan={4}>
+                            HP: {g.hp}, ATK: {g.attack}, DEF: {g.defense},<br />
+                            S‑ATK: {g.sp_attack}, S‑DEF: {g.sp_defense}, SPD:{" "}
+                            {g.speed}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
           ))}
         </tbody>
       </table>
